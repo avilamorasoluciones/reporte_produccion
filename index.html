@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reporte de producción</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --surface-color: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning-bg: #fef3c7;
+            --warning-text: #92400e;
+            --input-bg: #ffffff;
+            --readonly-bg: #f1f5f9;
+        }
+        [data-theme="dark"] {
+            --bg-color: #020617;
+            --surface-color: #0f172a;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: #1e293b;
+            --primary: #3b82f6;
+            --primary-hover: #60a5fa;
+            --warning-bg: #451a03;
+            --warning-text: #fde047;
+            --input-bg: #1e293b;
+            --readonly-bg: #0b1220;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-size: 0.85rem;
+            line-height: 1.5;
+            transition: background-color 0.3s, color 0.3s;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        .container { width: 100%; padding: 20px 30px; flex: 1; }
+        header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding-bottom: 20px; margin-bottom: 20px; border-bottom: 1px solid var(--border-color);
+            gap: 16px; flex-wrap: wrap;
+        }
+        .brand { display: flex; align-items: center; gap: 10px; font-weight: 900; line-height: 1.1; text-transform: uppercase; letter-spacing: -0.5px; }
+        .brand-text { color: var(--text-main); font-size: 1.2rem; }
+        .brand-sub { color: var(--primary); font-size: 0.8rem; }
+        .header-actions { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+        .date-box { display: flex; flex-direction: column; gap: 4px; min-width: 180px; }
+        .date-box label { font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
+        .btn {
+            padding: 8px 16px; border: none; border-radius: 6px; font-family: 'Montserrat', sans-serif;
+            font-weight: 600; font-size: 0.8rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: 0.2s; color: #fff;
+        }
+        .btn-primary { background-color: var(--primary); }
+        .btn-primary:hover { background-color: var(--primary-hover); }
+        .btn-success { background-color: var(--success); }
+        .btn-danger { background-color: var(--danger); }
+        .btn-warning { background-color: #f59e0b; color: white; }
+        .btn-outline { background-color: transparent; border: 1px solid var(--border-color); color: var(--text-main); }
+        .btn-outline:hover { background-color: var(--border-color); }
+        .btn-icon {
+            padding: 8px; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center;
+            justify-content: center; background: transparent; color: var(--text-main); border: 1px solid var(--border-color); cursor: pointer;
+        }
+        .excel-row-wrapper { background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; margin-bottom: 20px; }
+        .excel-row { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 8px; align-items: flex-end; }
+        .excel-row::-webkit-scrollbar { height: 6px; }
+        .excel-row::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+        .input-group { display: flex; flex-direction: column; gap: 4px; min-width: 100px; flex: 1; }
+        .input-group.large { min-width: 180px; }
+        .input-group.small { min-width: 80px; }
+        label { font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; white-space: nowrap; }
+        input {
+            background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-main);
+            border-radius: 4px; padding: 6px 10px; font-family: inherit; font-size: 0.85rem; outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(37,99,235,0.10); }
+        input[readonly] { background-color: var(--readonly-bg); color: var(--text-muted); cursor: not-allowed; }
+        .form-toolbar { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color); gap: 12px; flex-wrap: wrap; }
+        .toolbar-left { display: flex; gap: 10px; flex-wrap: wrap; }
+        .meta-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 12px; flex-wrap: wrap; }
+        .meta-badge { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border-color); background: var(--surface-color); font-weight: 700; color: var(--text-muted); }
+        .table-container { background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 8px; overflow-x: auto; max-height: 55vh; }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th { position: sticky; top: 0; background: var(--surface-color); font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); padding: 12px 15px; border-bottom: 2px solid var(--border-color); z-index: 1; white-space: nowrap; }
+        td { padding: 10px 15px; border-bottom: 1px solid var(--border-color); white-space: nowrap; vertical-align: middle; }
+        tbody tr:hover { background-color: var(--readonly-bg); }
+        .row-extra { background-color: var(--warning-bg) !important; color: var(--warning-text); }
+        .action-buttons { display: flex; gap: 6px; }
+        .btn-mini { width: 32px; height: 32px; border-radius: 6px; padding: 0; justify-content: center; }
+        footer { text-align: center; padding: 20px; font-size: 0.75rem; color: var(--text-muted); border-top: 1px solid var(--border-color); margin-top: auto; }
+        .footer-badge { display: inline-block; padding: 4px 12px; border: 1px solid var(--border-color); border-radius: 20px; font-weight: 700; margin-bottom: 5px; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div class="brand">
+            <i class="fa-solid fa-bolt" style="color: var(--primary); font-size: 1.2rem;"></i>
+            <div>
+                <div class="brand-text">Reporte de Producción</div>
+                <div class="brand-sub">Flamingo Paper</div>
+            </div>
+        </div>
+        <div class="header-actions">
+            <div class="date-box">
+                <label for="fechaReporte">Fecha del reporte</label>
+                <input type="date" id="fechaReporte" />
+            </div>
+            <button class="btn-icon" id="btnTheme" title="Cambiar tema">
+                <i class="fa-solid fa-sun"></i>
+            </button>
+        </div>
+    </header>
+
+    <div class="meta-row">
+        <div class="meta-badge">
+            <i class="fa-solid fa-calendar-day"></i>
+            <span id="lblFechaActual">Sin fecha seleccionada</span>
+        </div>
+        <div class="meta-badge">
+            <i class="fa-solid fa-database"></i>
+            <span id="lblTotalRegistros">0 registros</span>
+        </div>
+    </div>
+
+    <form id="dataForm" class="excel-row-wrapper">
+        <div class="excel-row">
+            <div class="input-group small">
+                <label>Nº. Orden</label>
+                <input type="number" id="orden" required autofocus />
+            </div>
+            <div class="input-group large">
+                <label>Trabajo</label>
+                <input type="text" id="trabajo" required />
+            </div>
+            <div class="input-group small">
+                <label>Máquina</label>
+                <input type="text" id="maquina" style="text-transform: uppercase;" required />
+            </div>
+            <div class="input-group">
+                <label>Producto</label>
+                <input type="text" id="producto" readonly tabindex="-1" />
+            </div>
+            <div class="input-group">
+                <label>Operador</label>
+                <input type="text" id="operador" list="operadoresList" required />
+                <datalist id="operadoresList">
+                    <option value="Eli"></option><option value="Ela"></option><option value="Eloísa"></option><option value="Karen"></option><option value="Kelly"></option>
+                    <option value="Hassam"></option><option value="Idelin"></option><option value="Ilianny"></option><option value="Jesús"></option><option value="Heydi"></option>
+                    <option value="Marcos"></option><option value="Marian"></option><option value="Noelia"></option><option value="Olga"></option><option value="Onaylin"></option>
+                    <option value="Ricardo"></option><option value="Rossmery"></option><option value="Saray"></option><option value="Sergio"></option><option value="Tatiana"></option>
+                    <option value="Wilfredo"></option><option value="Yaima"></option><option value="Yanny"></option><option value="Yatziel"></option><option value="Yosniel"></option>
+                    <option value="Yudi"></option><option value="Yusnelis"></option><option value="Yoel"></option><option value="Lily"></option><option value="Lucy"></option>
+                </datalist>
+            </div>
+            <div class="input-group">
+                <label>Código</label>
+                <input type="text" id="codigo" style="text-transform: uppercase;" required />
+            </div>
+            <div class="input-group small">
+                <label>Empaque</label>
+                <input type="text" id="empaque" required />
+            </div>
+            <div class="input-group small">
+                <label>Prod.</label>
+                <input type="number" step="any" id="produccion" required />
+            </div>
+            <div class="input-group small">
+                <label>H. Inicio</label>
+                <input type="text" id="hora_inicio" placeholder="7:00" required />
+            </div>
+            <div class="input-group small">
+                <label>H. Fin</label>
+                <input type="text" id="hora_fin" placeholder="7:30" required />
+            </div>
+            <div class="input-group large">
+                <label>Jornada</label>
+                <input type="text" id="jornada" readonly tabindex="-1" />
+            </div>
+        </div>
+
+        <div class="form-toolbar">
+            <div class="toolbar-left">
+                <button type="submit" class="btn btn-primary" id="btnSubmit">
+                    <i class="fa-solid fa-plus"></i>
+                    <span id="btnSubmitText">Agregar</span>
+                </button>
+                <button type="button" class="btn btn-outline hidden" id="btnCancelarEdicion">
+                    <i class="fa-solid fa-xmark"></i> Cancelar
+                </button>
+            </div>
+            <div class="toolbar-left">
+                <button type="button" class="btn btn-outline" onclick="borrarDiaActual()">
+                    <i class="fa-solid fa-trash-can"></i> Borrar día
+                </button>
+                <button type="button" class="btn btn-success" onclick="exportarExcel()">
+                    <i class="fa-solid fa-file-excel"></i> Exportar
+                </button>
+            </div>
+        </div>
+    </form>
+
+    <div class="table-container">
+        <table id="dataTable">
+            <thead>
+                <tr>
+                    <th>Nº. Orden</th>
+                    <th>Trabajo</th>
+                    <th>Máquina</th>
+                    <th>Producto</th>
+                    <th>Operador</th>
+                    <th>Código</th>
+                    <th>Empaque</th>
+                    <th>Producción</th>
+                    <th>H. Inicio</th>
+                    <th>H. Fin</th>
+                    <th>Jornada</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<footer>
+    <div class="footer-badge">© 2026 Avila Mora Soluciones</div>
+    <div>Haciéndole la vida digital más fácil a los negocios.</div>
+</footer>
+
+<script>
+    let registros = [];
+    let editIndex = null;
+    const STORAGE_PREFIX = 'datosFlamingoPaper_';
+    const MEMORY_KEY = 'memoriaInteligente_Flamingo';
+    
+    let dbMemoria = JSON.parse(localStorage.getItem(MEMORY_KEY)) || { operadores: {}, empaques: {} };
+
+    const htmlEl = document.documentElement;
+    const themeBtn = document.getElementById('btnTheme');
+    const themeIcon = themeBtn.querySelector('i');
+    const btnSubmitText = document.getElementById('btnSubmitText');
+    const btnCancelarEdicion = document.getElementById('btnCancelarEdicion');
+    const fechaReporteInput = document.getElementById('fechaReporte');
+    const lblFechaActual = document.getElementById('lblFechaActual');
+    const lblTotalRegistros = document.getElementById('lblTotalRegistros');
+
+    function fechaHoyLocalISO() {
+        const hoy = new Date();
+        return `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
+    }
+
+    function formatearFechaBonita(iso) {
+        if (!iso) return 'Sin fecha seleccionada';
+        const [y, m, d] = iso.split('-');
+        return `${d}/${m}/${y}`;
+    }
+
+    function getStorageKey() {
+        return STORAGE_PREFIX + (fechaReporteInput.value || fechaHoyLocalISO());
+    }
+
+    function esViernesActivo() {
+        if (!fechaReporteInput.value) return false;
+        const [y, m, d] = fechaReporteInput.value.split('-');
+        const fecha = new Date(y, m - 1, d);
+        return fecha.getDay() === 5; 
+    }
+
+    function guardarEnStorage() {
+        localStorage.setItem(getStorageKey(), JSON.stringify(registros));
+        actualizarContadores();
+    }
+
+    function guardarMemoriaInteligente(maquina, operador, codigo, empaque) {
+        if(maquina && operador) dbMemoria.operadores[maquina] = operador;
+        if(codigo && empaque) dbMemoria.empaques[codigo] = empaque;
+        localStorage.setItem(MEMORY_KEY, JSON.stringify(dbMemoria));
+    }
+
+    function cargarRegistrosPorFecha() {
+        registros = JSON.parse(localStorage.getItem(getStorageKey())) || [];
+        registros = registros.map(r => {
+            if (!r.hora_inicio_raw) r.hora_inicio_raw = r.hora_inicio;
+            if (!r.hora_fin_raw) r.hora_fin_raw = r.hora_fin;
+            return r;
+        });
+        editIndex = null;
+        actualizarFechaVisible();
+        resolverYReestructurarTodoElDia();
+        ordenarYRenderizar();
+        limpiarFormularioCompleto();
+    }
+
+    function actualizarFechaVisible() {
+        lblFechaActual.textContent = 'Fecha activa: ' + formatearFechaBonita(fechaReporteInput.value);
+    }
+
+    function actualizarContadores() {
+        lblTotalRegistros.textContent = `${registros.length} registro${registros.length === 1 ? '' : 's'}`;
+    }
+
+    window.onload = function() {
+        fechaReporteInput.value = fechaHoyLocalISO();
+        cargarRegistrosPorFecha();
+    };
+
+    fechaReporteInput.addEventListener('change', function() {
+        salirModoEdicion();
+        cargarRegistrosPorFecha();
+    });
+
+    themeBtn.addEventListener('click', () => {
+        const isLight = htmlEl.getAttribute('data-theme') === 'light';
+        htmlEl.setAttribute('data-theme', isLight ? 'dark' : 'light');
+        themeIcon.className = isLight ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+    });
+
+    document.getElementById('maquina').addEventListener('change', function() {
+        let maq = this.value.toUpperCase().trim();
+        this.value = maq;
+        
+        if (['1', '3', '4', '5', '8', '9'].includes(maq)) document.getElementById('producto').value = "Servilletas";
+        else if (['A', 'B'].includes(maq)) document.getElementById('producto').value = "Vasos";
+        else document.getElementById('producto').value = "";
+
+        if(dbMemoria.operadores[maq] && !document.getElementById('operador').value) {
+            document.getElementById('operador').value = dbMemoria.operadores[maq];
+        }
+    });
+
+    document.getElementById('codigo').addEventListener('change', function() {
+        let cod = this.value.toUpperCase().trim();
+        if(dbMemoria.empaques[cod] && !document.getElementById('empaque').value) {
+            document.getElementById('empaque').value = dbMemoria.empaques[cod];
+        }
+    });
+
+    function parseTime(t) {
+        if (!t) return "";
+        let p = String(t).trim().replace(/\s+/g, '').split(":");
+        if (p.length === 2) {
+            let h = p[0].replace(/\D/g, ''), m = p[1].replace(/\D/g, '');
+            if (h !== '' && m !== '') return h.padStart(2, '0') + ":" + m.padStart(2, '0');
+        }
+        return "";
+    }
+
+    function timeToMinutes(t) {
+        t = parseTime(t);
+        if (!t) return null;
+        const [h, m] = t.split(":").map(Number);
+        return isNaN(h) || isNaN(m) ? null : h * 60 + m;
+    }
+
+    function minutesToTime(mins) {
+        return String(Math.floor(mins / 60)).padStart(2, '0') + ":" + String(mins % 60).padStart(2, '0');
+    }
+
+    function evaluarCombinacion(comb) {
+        let score = 0;
+        let n = comb.length;
+        
+        for (let i = 0; i < n; i++) {
+            for (let j = i + 1; j < n; j++) {
+                if (comb[i].ini < comb[j].fin && comb[i].fin > comb[j].ini) {
+                    score += 100000; 
+                }
+            }
+        }
+        
+        for (let i = 0; i < n; i++) {
+            if (comb[i].ini < 420) score += 5000;
+            if (comb[i].fin > 1380) score += 5000;
+            if (comb[i].isPm) score += 15; 
+        }
+        
+        let sorted = [...comb].sort((a, b) => a.ini - b.ini);
+        for (let i = 0; i < n - 1; i++) {
+            let gap = sorted[i+1].ini - sorted[i].fin;
+            if (gap === 0) score -= 300;
+            else if (gap > 0) score += gap * 0.5;
+        }
+        
+        return score;
+    }
+
+    function resolverYReestructurarTodoElDia() {
+        let porMaquina = {};
+        let todoCorrecto = true;
+        let esViernes = esViernesActivo();
+
+        registros.forEach((r, idx) => {
+            if (!porMaquina[r.maquina]) porMaquina[r.maquina] = [];
+            porMaquina[r.maquina].push({ r, idx });
+        });
+
+        Object.keys(porMaquina).forEach(maq => {
+            let items = porMaquina[maq];
+            let numItems = items.length;
+            
+            let opcionesPorItem = items.map(item => {
+                let baseIni = timeToMinutes(item.r.hora_inicio_raw);
+                let baseFin = timeToMinutes(item.r.hora_fin_raw);
+                if (baseIni === null || baseFin === null) return [];
+                
+                let opt0_ini = baseIni;
+                let opt0_fin = baseFin;
+                if (opt0_fin < opt0_ini) opt0_fin += 720;
+                
+                let opt1_ini = baseIni + 720;
+                let opt1_fin = baseFin + 720;
+                if (baseFin < baseIni) opt1_fin += 720;
+
+                let validOpts = [];
+                if (opt0_fin <= 1440) validOpts.push({ ini: opt0_ini, fin: opt0_fin, isPm: opt0_ini >= 720 });
+                if (opt1_fin <= 1440) validOpts.push({ ini: opt1_ini, fin: opt1_fin, isPm: true });
+                
+                if (validOpts.length === 0) validOpts.push({ ini: opt0_ini, fin: opt0_fin, isPm: false });
+                return validOpts;
+            });
+
+            let mejorComb = null;
+            let mejorScore = Infinity;
+
+            function buscar(itemIdx, currentComb) {
+                if (itemIdx === numItems) {
+                    let score = evaluarCombinacion(currentComb);
+                    if (score < mejorScore) {
+                        mejorScore = score;
+                        mejorComb = [...currentComb];
+                    }
+                    return;
+                }
+                
+                let opts = opcionesPorItem[itemIdx];
+                for (let o of opts) {
+                    currentComb.push(o);
+                    buscar(itemIdx + 1, currentComb);
+                    currentComb.pop();
+                }
+            }
+
+            buscar(0, []);
+
+            if (mejorScore >= 100000) {
+                todoCorrecto = false;
+            }
+
+            if (mejorComb) {
+                mejorComb.forEach((opt, i) => {
+                    let originalIdx = items[i].idx;
+                    registros[originalIdx]._minsInicio = opt.ini;
+                    registros[originalIdx]._minsFin = opt.fin;
+                    registros[originalIdx].hora_inicio = minutesToTime(opt.ini);
+                    registros[originalIdx].hora_fin = minutesToTime(opt.fin);
+                    registros[originalIdx].jornada = (esViernes || opt.ini >= 1050) ? "Horas extras" : "Hora Jornada";
+                });
+            }
+        });
+
+        return todoCorrecto;
+    }
+
+    document.getElementById('hora_inicio').addEventListener('input', function() {
+        const maq = document.getElementById('maquina').value.toUpperCase().trim();
+        if (!maq || !this.value) return;
+        
+        let baseIni = timeToMinutes(this.value);
+        if (baseIni === null) return;
+        
+        let finalIni = baseIni;
+        let hasOverlapAM = false;
+        let recordsMismaMaquina = registros.filter((r, i) => r.maquina === maq && i !== editIndex);
+        
+        for (let r of recordsMismaMaquina) {
+            if (baseIni < r._minsFin && (baseIni + 30) > r._minsInicio) {
+                hasOverlapAM = true;
+                break;
+            }
+        }
+        if (hasOverlapAM && (baseIni + 720) <= 1440) finalIni = baseIni + 720;
+        
+        let esViernes = esViernesActivo();
+        document.getElementById('jornada').value = (esViernes || finalIni >= 1050) ? "Horas extras" : "Hora Jornada";
+    });
+
+    function limpiarFormularioCompleto() {
+        document.getElementById('dataForm').reset();
+        document.getElementById('producto').value = '';
+        document.getElementById('jornada').value = '';
+    }
+
+    function salirModoEdicion() {
+        editIndex = null;
+        btnSubmitText.textContent = "Agregar";
+        btnCancelarEdicion.classList.add('hidden');
+        limpiarFormularioCompleto();
+        document.getElementById('orden').focus();
+    }
+
+    btnCancelarEdicion.addEventListener('click', salirModoEdicion);
+
+    document.getElementById('dataForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        if (!fechaReporteInput.value) return alert("Selecciona la fecha.");
+
+        const orden = document.getElementById('orden').value;
+        const maquina = document.getElementById('maquina').value.toUpperCase().trim();
+        const operador = document.getElementById('operador').value.trim();
+        const codigo = document.getElementById('codigo').value.toUpperCase().trim();
+        const empaque = document.getElementById('empaque').value.trim();
+        const hInicioRaw = document.getElementById('hora_inicio').value;
+        const hFinRaw = document.getElementById('hora_fin').value;
+
+        if (!timeToMinutes(hInicioRaw) || !timeToMinutes(hFinRaw)) return alert("Horas inválidas.");
+
+        const produccion = parseFloat(document.getElementById('produccion').value.replace(',', '.'));
+        if (isNaN(produccion)) return alert("Producción inválida.");
+
+        let esDuplicado = registros.some((r, idx) => {
+            if (idx === editIndex) return false;
+            return r.maquina === maquina && 
+                   r.orden === orden && 
+                   r.codigo === codigo && 
+                   parseTime(r.hora_inicio_raw) === parseTime(hInicioRaw) && 
+                   parseTime(r.hora_fin_raw) === parseTime(hFinRaw);
+        });
+
+        if (esDuplicado) {
+            return alert("¡Registro Duplicado! Ya ingresaste este mismo código y horario para esta orden en la máquina " + maquina);
+        }
+
+        const reg = {
+            orden: orden,
+            trabajo: document.getElementById('trabajo').value.toUpperCase().trim(),
+            maquina: maquina,
+            producto: document.getElementById('producto').value,
+            operador: operador,
+            codigo: codigo,
+            empaque: empaque,
+            produccion: produccion,
+            hora_inicio_raw: hInicioRaw,
+            hora_fin_raw: hFinRaw,
+            jornada: "",
+            hora_inicio: "",
+            hora_fin: "",
+            _minsInicio: 0,
+            _minsFin: 0
+        };
+
+        let copiaRegistrosRespando = JSON.parse(JSON.stringify(registros));
+
+        if (editIndex !== null) registros[editIndex] = reg;
+        else registros.push(reg);
+
+        let esValidoSinSolapes = resolverYReestructurarTodoElDia();
+
+        if (!esValidoSinSolapes) {
+            registros = copiaRegistrosRespando;
+            resolverYReestructurarTodoElDia();
+            return alert("¡Conflicto de Horario Irresoluble! Las horas ingresadas se pisan o chocan directamente con otro bloque registrado en la máquina " + maquina + ". Revisa la hojita.");
+        }
+
+        guardarMemoriaInteligente(maquina, operador, codigo, empaque);
+        guardarEnStorage();
+        ordenarYRenderizar();
+
+        if (editIndex !== null) {
+            salirModoEdicion();
+            return;
+        }
+
+        limpiarFormularioCompleto();
+        document.getElementById('orden').focus();
+    });
+
+    function ordenarYRenderizar() {
+        const jerarquia = { '1': 1, '3': 2, '4': 3, '5': 4, '8': 5, '9': 6, 'A': 7, 'B': 8 };
+        registros.sort((a, b) => {
+            let jA = jerarquia[a.maquina] || 99, jB = jerarquia[b.maquina] || 99;
+            return jA !== jB ? jA - jB : (a._minsInicio - b._minsInicio);
+        });
+
+        guardarEnStorage();
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = '';
+
+        registros.forEach((r, index) => {
+            let tr = document.createElement('tr');
+            if (r.jornada === "Horas extras") tr.className = "row-extra";
+            tr.innerHTML = `
+                <td>${r.orden}</td>
+                <td>${r.trabajo}</td>
+                <td>${r.maquina}</td>
+                <td>${r.producto}</td>
+                <td>${r.operador}</td>
+                <td>${r.codigo}</td>
+                <td>${r.empaque}</td>
+                <td>${r.produccion}</td>
+                <td>${r.hora_inicio}</td>
+                <td>${r.hora_fin}</td>
+                <td>${r.jornada}</td>
+                <td>
+                    <div class="action-buttons">
+                        <button class="btn btn-warning btn-mini" type="button" onclick="duplicarRegistro(${index})" title="Duplicar / Dividir">
+                            <i class="fa-solid fa-clone"></i>
+                        </button>
+                        <button class="btn btn-outline btn-mini" type="button" onclick="editarRegistro(${index})" title="Editar">
+                            <i class="fa-solid fa-pen"></i>
+                        </button>
+                        <button class="btn btn-danger btn-mini" type="button" onclick="eliminarRegistro(${index})" title="Eliminar">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+        actualizarContadores();
+    }
+
+    function cargarDatosFormulario(r) {
+        document.getElementById('orden').value = r.orden;
+        document.getElementById('trabajo').value = r.trabajo;
+        document.getElementById('maquina').value = r.maquina;
+        document.getElementById('producto').value = r.producto;
+        document.getElementById('operador').value = r.operador;
+        document.getElementById('codigo').value = r.codigo;
+        document.getElementById('empaque').value = r.empaque;
+        document.getElementById('produccion').value = r.produccion;
+        document.getElementById('hora_inicio').value = r.hora_inicio_raw;
+        document.getElementById('hora_fin').value = r.hora_fin_raw;
+        document.getElementById('jornada').value = r.jornada;
+    }
+
+    function editarRegistro(index) {
+        cargarDatosFormulario(registros[index]);
+        editIndex = index;
+        btnSubmitText.textContent = "Guardar cambios";
+        btnCancelarEdicion.classList.remove('hidden');
+        document.getElementById('orden').focus();
+    }
+
+    function duplicarRegistro(index) {
+        cargarDatosFormulario(registros[index]);
+        document.getElementById('produccion').value = ''; 
+        editIndex = null; 
+        btnSubmitText.textContent = "Agregar clon";
+        btnCancelarEdicion.classList.remove('hidden');
+        document.getElementById('hora_inicio').focus();
+    }
+
+    function eliminarRegistro(index) {
+        if (!confirm("¿Eliminar este registro?")) return;
+        registros.splice(index, 1);
+        resolverYReestructurarTodoElDia();
+        guardarEnStorage();
+        ordenarYRenderizar();
+        if (editIndex === index) salirModoEdicion();
+        else if (editIndex !== null && index < editIndex) editIndex--;
+    }
+
+    function borrarDiaActual() {
+        if (!fechaReporteInput.value) return alert("Selecciona una fecha.");
+        if (!confirm(`¿Borrar los registros de este día?`)) return;
+        registros = [];
+        localStorage.removeItem(getStorageKey());
+        ordenarYRenderizar();
+        salirModoEdicion();
+    }
+
+    function exportarExcel() {
+        if (registros.length === 0) return alert("No hay datos.");
+        const ws = XLSX.utils.json_to_sheet(registros.map(r => ({
+            "FECHA": fechaReporteInput.value || fechaHoyLocalISO(), "Nº. ORDEN": r.orden,
+            "NOMBRE DEL TRABAJO": r.trabajo, "MÁQUINA": r.maquina, "PRODUCTO": r.producto,
+            "OPERADOR": r.operador, "CÓDIGO": r.codigo, "EMPAQUE": r.empaque,
+            "PRODUCCIÓN": r.produccion, "TIPO DE JORNADA": r.jornada,
+            "HORA INICIO": r.hora_inicio, "HORA FIN": r.hora_fin
+        })));
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Producción");
+        XLSX.writeFile(wb, `Produccion_${fechaReporteInput.value || fechaHoyLocalISO()}.xlsx`);
+    }
+</script>
+</body>
+</html>
