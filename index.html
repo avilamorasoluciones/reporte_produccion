@@ -62,13 +62,6 @@
         .header-actions { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
         .date-box { display: flex; flex-direction: column; gap: 4px; min-width: 180px; }
         .date-box label { font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
-        .switch-wrapper { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 0.8rem; color: var(--text-muted); cursor: pointer; }
-        .switch { position: relative; display: inline-block; width: 36px; height: 20px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; inset: 0; background-color: var(--border-color); transition: .3s; border-radius: 20px; }
-        .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
-        input:checked + .slider { background-color: var(--primary); }
-        input:checked + .slider:before { transform: translateX(16px); }
         .btn {
             padding: 8px 16px; border: none; border-radius: 6px; font-family: 'Montserrat', sans-serif;
             font-weight: 600; font-size: 0.8rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: 0.2s; color: #fff;
@@ -131,13 +124,6 @@
                 <label for="fechaReporte">Fecha del reporte</label>
                 <input type="date" id="fechaReporte" />
             </div>
-            <label class="switch-wrapper" title="Mantiene máquina, operador y transfiere la hora fin">
-                <div class="switch">
-                    <input type="checkbox" id="modoSecuencial" />
-                    <span class="slider"></span>
-                </div>
-                <span id="lblModo">Secuencial OFF</span>
-            </label>
             <button class="btn-icon" id="btnTheme" title="Cambiar tema">
                 <i class="fa-solid fa-sun"></i>
             </button>
@@ -219,9 +205,6 @@
                 </button>
                 <button type="button" class="btn btn-outline hidden" id="btnCancelarEdicion">
                     <i class="fa-solid fa-xmark"></i> Cancelar
-                </button>
-                <button type="button" class="btn btn-outline hidden" id="btnLimpiarMemoria" onclick="limpiarMemoria()">
-                    Limpiar Máquina
                 </button>
             </div>
             <div class="toolbar-left">
@@ -534,13 +517,6 @@
         document.getElementById('jornada').value = '';
     }
 
-    function limpiarMemoria() {
-        ['maquina', 'producto', 'operador', 'empaque', 'hora_inicio', 'hora_fin', 'jornada'].forEach(id => {
-            document.getElementById(id).value = '';
-        });
-        document.getElementById('orden').focus();
-    }
-
     function salirModoEdicion() {
         editIndex = null;
         btnSubmitText.textContent = "Agregar";
@@ -550,14 +526,6 @@
     }
 
     btnCancelarEdicion.addEventListener('click', salirModoEdicion);
-
-    document.getElementById('modoSecuencial').addEventListener('change', function() {
-        const lbl = document.getElementById('lblModo');
-        const btn = document.getElementById('btnLimpiarMemoria');
-        lbl.innerText = this.checked ? "Secuencial ON" : "Secuencial OFF";
-        lbl.style.color = this.checked ? "var(--primary)" : "var(--text-muted)";
-        this.checked ? btn.classList.remove('hidden') : btn.classList.add('hidden');
-    });
 
     document.getElementById('dataForm').addEventListener('submit', function(e) {
         e.preventDefault();
@@ -630,19 +598,10 @@
             return;
         }
 
-        // Limpiar el estado visual si venía de una clonación
+        // Reseteo visual forzado para que no se quede pegado tras clonar
         btnSubmitText.textContent = "Agregar";
         btnCancelarEdicion.classList.add('hidden');
-
-        if (document.getElementById('modoSecuencial').checked) {
-            let nextInicio = registros.find(r => r.orden === orden && r.codigo === codigo)?.hora_fin_raw || hFinRaw;
-            ['orden', 'trabajo', 'codigo', 'produccion', 'empaque'].forEach(id => document.getElementById(id).value = '');
-            document.getElementById('hora_inicio').value = nextInicio;
-            document.getElementById('hora_fin').value = '';
-            document.getElementById('jornada').value = "";
-        } else {
-            limpiarFormularioCompleto();
-        }
+        limpiarFormularioCompleto();
         document.getElementById('orden').focus();
     });
 
