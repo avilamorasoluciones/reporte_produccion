@@ -91,6 +91,29 @@
         }
         input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(37,99,235,0.10); }
         input[readonly] { background-color: var(--readonly-bg); color: var(--text-muted); cursor: not-allowed; }
+        
+        /* Estilos para la leyenda de 24 horas */
+        .time-legend {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            background: var(--readonly-bg);
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+        .time-legend strong { color: var(--text-main); }
+        .time-legend span {
+            background: var(--surface-color);
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            font-weight: 600;
+        }
+
         .form-toolbar { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color); gap: 12px; flex-wrap: wrap; }
         .toolbar-left { display: flex; gap: 10px; flex-wrap: wrap; }
         .meta-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 12px; flex-wrap: wrap; }
@@ -197,6 +220,22 @@
             </div>
         </div>
 
+        <!-- Leyenda de formato 24 horas -->
+        <div class="time-legend">
+            <i class="fa-regular fa-clock"></i> <strong>Guía 24h:</strong> 
+            <span>1pm = 13:00</span>
+            <span>2pm = 14:00</span>
+            <span>3pm = 15:00</span>
+            <span>4pm = 16:00</span>
+            <span>5pm = 17:00</span>
+            <span>6pm = 18:00</span>
+            <span>7pm = 19:00</span>
+            <span>8pm = 20:00</span>
+            <span>9pm = 21:00</span>
+            <span>10pm = 22:00</span>
+            <span>10:30pm = 22:30</span>
+        </div>
+
         <div class="form-toolbar">
             <div class="toolbar-left">
                 <button type="submit" class="btn btn-primary" id="btnSubmit">
@@ -262,6 +301,24 @@
     const fechaReporteInput = document.getElementById('fechaReporte');
     const lblFechaActual = document.getElementById('lblFechaActual');
     const lblTotalRegistros = document.getElementById('lblTotalRegistros');
+
+    // -- NUEVO: Bloquear el punto y cambiar a coma en Empaque --
+    const empaqueInput = document.getElementById('empaque');
+    empaqueInput.addEventListener('keypress', function(e) {
+        if (e.key === '.') {
+            e.preventDefault(); 
+            const start = this.selectionStart;
+            const end = this.selectionEnd;
+            this.value = this.value.substring(0, start) + ',' + this.value.substring(end);
+            this.selectionStart = this.selectionEnd = start + 1;
+        }
+    });
+    empaqueInput.addEventListener('input', function(e) {
+        if (this.value.includes('.')) {
+            this.value = this.value.replace(/\./g, ',');
+        }
+    });
+    // ----------------------------------------------------------
 
     function fechaHoyLocalISO() {
         const hoy = new Date();
