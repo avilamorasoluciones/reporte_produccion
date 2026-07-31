@@ -92,7 +92,7 @@
         input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(37,99,235,0.10); }
         input[readonly] { background-color: var(--readonly-bg); color: var(--text-muted); cursor: not-allowed; }
         
-        /* Estilos para la leyenda de 24 horas */
+        /* Estilos para la leyenda de 24 horas - ¡Ahora centrada! */
         .time-legend {
             font-size: 0.7rem;
             color: var(--text-muted);
@@ -104,6 +104,7 @@
             flex-wrap: wrap;
             gap: 8px;
             align-items: center;
+            justify-content: center; /* ESTO CENTRA LA LEYENDA */
         }
         .time-legend strong { color: var(--text-main); }
         .time-legend span {
@@ -115,7 +116,7 @@
         }
 
         .form-toolbar { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color); gap: 12px; flex-wrap: wrap; }
-        .toolbar-left { display: flex; gap: 10px; flex-wrap: wrap; }
+        .toolbar-left { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
         .meta-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 12px; flex-wrap: wrap; }
         .meta-badge { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border-color); background: var(--surface-color); font-weight: 700; color: var(--text-muted); }
         .table-container { background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 8px; overflow-x: auto; max-height: 55vh; }
@@ -129,6 +130,9 @@
         footer { text-align: center; padding: 20px; font-size: 0.75rem; color: var(--text-muted); border-top: 1px solid var(--border-color); margin-top: auto; }
         .footer-badge { display: inline-block; padding: 4px 12px; border: 1px solid var(--border-color); border-radius: 20px; font-weight: 700; margin-bottom: 5px; }
         .hidden { display: none !important; }
+        
+        /* Ocultar el input de archivo para la importación */
+        #fileExcel { display: none; }
     </style>
 </head>
 <body>
@@ -220,7 +224,7 @@
             </div>
         </div>
 
-        <!-- Leyenda de formato 24 horas -->
+        <!-- Leyenda de formato 24 horas centrada -->
         <div class="time-legend">
             <i class="fa-regular fa-clock"></i> <strong>Guía 24h:</strong> 
             <span>1pm = 13:00</span>
@@ -247,12 +251,20 @@
                 </button>
             </div>
             <div class="toolbar-left">
+                <button type="button" class="btn btn-warning" onclick="mudarDia()" title="Mover estos registros a otra fecha">
+                    <i class="fa-solid fa-truck-fast"></i> Mudar día
+                </button>
                 <button type="button" class="btn btn-outline" onclick="borrarDiaActual()">
                     <i class="fa-solid fa-trash-can"></i> Borrar día
+                </button>
+                <button type="button" class="btn btn-success" onclick="document.getElementById('fileExcel').click()" title="Importar desde Excel">
+                    <i class="fa-solid fa-file-import"></i> Importar
                 </button>
                 <button type="button" class="btn btn-success" onclick="exportarExcel()">
                     <i class="fa-solid fa-file-excel"></i> Exportar
                 </button>
+                <!-- Input invisible para cargar el Excel -->
+                <input type="file" id="fileExcel" accept=".xlsx, .xls" onchange="importarExcel(event)" />
             </div>
         </div>
     </form>
@@ -302,7 +314,7 @@
     const lblFechaActual = document.getElementById('lblFechaActual');
     const lblTotalRegistros = document.getElementById('lblTotalRegistros');
 
-    // -- NUEVO: Bloquear el punto y cambiar a coma en Empaque --
+    // -- Bloquear el punto y cambiar a coma en Empaque --
     const empaqueInput = document.getElementById('empaque');
     empaqueInput.addEventListener('keypress', function(e) {
         if (e.key === '.') {
@@ -537,6 +549,7 @@
                     registros[originalIdx]._minsFin = opt.fin;
                     registros[originalIdx].hora_inicio = minutesToTime(opt.ini);
                     registros[originalIdx].hora_fin = minutesToTime(opt.fin);
+                    // IMPORTANTE: Aquí se determina si es viernes para colorear y nombrar correctamente
                     registros[originalIdx].jornada = (esViernes || opt.ini >= 1050) ? "Horas extras" : "Hora Jornada";
                 });
             }
@@ -655,7 +668,6 @@
             return;
         }
 
-        // Reseteo visual forzado para que no se quede pegado tras clonar
         btnSubmitText.textContent = "Agregar";
         btnCancelarEdicion.classList.add('hidden');
         limpiarFormularioCompleto();
@@ -755,6 +767,94 @@
         localStorage.removeItem(getStorageKey());
         ordenarYRenderizar();
         salirModoEdicion();
+    }
+
+    // --- NUEVO: Función para Mudar registros a otro día ---
+    function mudarDia() {
+        if (registros.length === 0) return alert("No hay registros para mudar en este día.");
+        
+        let nuevaFecha = prompt("Ingresa la fecha correcta en formato AAAA-MM-DD (ejemplo: 2026-07-31):");
+        if (!nuevaFecha) return;
+        
+        const regex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!regex.test(nuevaFecha)) return alert("Formato inválido. Por favor usa el formato AAAA-MM-DD.");
+        
+        let nuevaKey = STORAGE_PREFIX + nuevaFecha;
+        let registrosDestino = JSON.parse(localStorage.getItem(nuevaKey)) || [];
+        
+        if (registrosDestino.length > 0) {
+            if (!confirm("La fecha de destino ya tiene registros. ¿Deseas combinarlos?")) return;
+        }
+        
+        // Unimos los datos, guardamos en la nueva fecha y borramos la actual
+        let combinados = registrosDestino.concat(registros);
+        localStorage.setItem(nuevaKey, JSON.stringify(combinados));
+        
+        localStorage.removeItem(getStorageKey());
+        registros = [];
+        
+        // Viajamos a la nueva fecha automáticamente
+        fechaReporteInput.value = nuevaFecha;
+        cargarRegistrosPorFecha(); 
+        
+        alert("¡Mudanza lista! Las reglas de horas extras se han recalculado solas para el nuevo día.");
+    }
+
+    // --- NUEVO: Función para Importar Excel ---
+    function importarExcel(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, {type: 'array'});
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            const json = XLSX.utils.sheet_to_json(worksheet);
+
+            if (json.length === 0) {
+                alert("El archivo Excel está vacío.");
+                return;
+            }
+
+            if (!confirm(`¿Importar ${json.length} registros a la fecha seleccionada (${fechaReporteInput.value || fechaHoyLocalISO()})?`)) {
+                document.getElementById('fileExcel').value = ''; 
+                return;
+            }
+
+            // Mapeamos los datos del Excel al formato interno
+            json.forEach(row => {
+                const reg = {
+                    orden: row["Nº. ORDEN"] ? String(row["Nº. ORDEN"]) : "",
+                    trabajo: row["NOMBRE DEL TRABAJO"] || "",
+                    maquina: String(row["MÁQUINA"] || "").toUpperCase(),
+                    producto: row["PRODUCTO"] || "",
+                    operador: row["OPERADOR"] || "",
+                    codigo: String(row["CÓDIGO"] || "").toUpperCase(),
+                    empaque: row["EMPAQUE"] || "",
+                    produccion: parseFloat(row["PRODUCCIÓN"]) || 0,
+                    hora_inicio_raw: row["HORA INICIO"] || "",
+                    hora_fin_raw: row["HORA FIN"] || "",
+                    jornada: "",
+                    hora_inicio: "",
+                    hora_fin: "",
+                    _minsInicio: 0,
+                    _minsFin: 0
+                };
+                registros.push(reg);
+            });
+
+            document.getElementById('fileExcel').value = ''; 
+
+            // Importante: recalcular para que la lógica de los viernes/horas extras se aplique a los datos importados
+            resolverYReestructurarTodoElDia();
+            guardarEnStorage();
+            ordenarYRenderizar();
+            
+            alert("¡Excel importado con éxito!");
+        };
+        reader.readAsArrayBuffer(file);
     }
 
     function exportarExcel() {
