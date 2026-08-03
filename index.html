@@ -270,7 +270,6 @@
                 </button>
             </div>
             <div class="toolbar-left">
-                <!-- Jerga actualizada -->
                 <button type="button" class="btn btn-warning" onclick="migrarRegistros()" title="Trasladar los registros de hoy hacia otra fecha">
                     <i class="fa-solid fa-truck-fast"></i> Migrar Fecha
                 </button>
@@ -354,7 +353,7 @@
 
     // -- Autoguardado (Borrador) --
     function guardarBorrador() {
-        if (editIndex !== null) return; // No hacer borrador si estamos en modo edición para no confundir
+        if (editIndex !== null) return; 
         const draft = {
             orden: document.getElementById('orden').value,
             trabajo: document.getElementById('trabajo').value,
@@ -366,7 +365,6 @@
             hora_inicio: document.getElementById('hora_inicio').value,
             hora_fin: document.getElementById('hora_fin').value
         };
-        // Solo guardar si hay al menos un dato importante
         if (draft.maquina || draft.codigo || draft.hora_inicio || draft.orden) {
             localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
             draftIcon.classList.add('active');
@@ -404,14 +402,12 @@
         draftIcon.classList.remove('active');
     }
 
-    // Escuchar cambios en los inputs para autoguardar
     const inputsForm = document.querySelectorAll('#dataForm input');
     inputsForm.forEach(input => {
         input.addEventListener('input', guardarBorrador);
         input.addEventListener('change', guardarBorrador);
     });
 
-    // -- Bloquear el punto y cambiar a coma en Empaque --
     const empaqueInput = document.getElementById('empaque');
     empaqueInput.addEventListener('keypress', function(e) {
         if (e.key === '.') {
@@ -427,7 +423,6 @@
             this.value = this.value.replace(/\./g, ',');
         }
     });
-    // ----------------------------------------------------------
 
     function fechaHoyLocalISO() {
         const hoy = new Date();
@@ -482,7 +477,7 @@
         resolverYReestructurarTodoElDia();
         ordenarYRenderizar();
         limpiarFormularioCompleto();
-        cargarBorrador(); // Cargar si hay un trabajo en progreso
+        cargarBorrador(); 
     }
 
     function actualizarFechaVisible() {
@@ -695,7 +690,6 @@
 
     btnCancelarEdicion.addEventListener('click', salirModoEdicion);
 
-    // Flujo Inteligente de Modal
     function mostrarModalDiscrepancia(lastReg, newReg) {
         pendingReg = newReg;
         pendingLastReg = lastReg;
@@ -713,14 +707,11 @@
         document.getElementById('smartModal').classList.remove('active');
 
         if (opcion === 'ant') {
-            // Ajustamos el nuevo inicio a la hora fin del anterior
             pendingReg.hora_inicio_raw = pendingLastReg.hora_fin_raw;
             document.getElementById('hora_inicio').value = pendingLastReg.hora_fin_raw; 
         } else if (opcion === 'new') {
-            // Ajustamos el fin del anterior a la hora inicio del nuevo
             pendingLastReg.hora_fin_raw = pendingReg.hora_inicio_raw;
         } 
-        // Si es 'ignore', no cambiamos nada
 
         procederGuardado(pendingReg);
     }
@@ -730,7 +721,7 @@
         
         if (!fechaReporteInput.value) return alert("Seleccione la fecha de operación.");
 
-        const orden = document.getElementById('orden').value; // Ya no validamos empty
+        const orden = document.getElementById('orden').value; 
         const maquina = document.getElementById('maquina').value.toUpperCase().trim();
         const operador = document.getElementById('operador').value.trim();
         const codigo = document.getElementById('codigo').value.toUpperCase().trim();
@@ -757,7 +748,7 @@
 
         const reg = {
             orden: orden,
-            trabajo: document.getElementById('trabajo').value.toUpperCase().trim(), // Ya no validamos empty
+            trabajo: document.getElementById('trabajo').value.toUpperCase().trim(),
             maquina: maquina,
             producto: document.getElementById('producto').value,
             operador: operador,
@@ -769,8 +760,6 @@
             jornada: "", hora_inicio: "", hora_fin: "", _minsInicio: 0, _minsFin: 0
         };
 
-        // LÓGICA INTELIGENTE: Detectar discrepancias menores con el registro anterior
-        // Solo para nuevos registros (no en edición) para evitar comportamientos confusos
         if (editIndex === null) {
             let lastForMaq = registros.slice().reverse().find(r => r.maquina === maquina);
             if (lastForMaq) {
@@ -778,15 +767,13 @@
                 let tIniNew = timeToMinutes(reg.hora_inicio_raw);
                 
                 if (tFinLast !== null && tIniNew !== null) {
-                    // Calculamos la diferencia en la ruta más corta en reloj de 12 horas (720 min)
                     let d = (tIniNew - tFinLast) % 720;
                     if (d > 360) d -= 720;
                     if (d < -360) d += 720;
                     
-                    // Si la diferencia es entre 1 y 30 minutos, lanzamos la alerta inteligente
                     if (Math.abs(d) > 0 && Math.abs(d) <= 30) {
                         mostrarModalDiscrepancia(lastForMaq, reg);
-                        return; // Detenemos el guardado, el modal continuará el flujo
+                        return; 
                     }
                 }
             }
@@ -796,7 +783,6 @@
     });
 
     function procederGuardado(reg) {
-        // Hacemos copia de respaldo por si el reestructurador encuentra un solape imposible
         let copiaRegistrosRespando = JSON.parse(JSON.stringify(registros));
 
         if (editIndex !== null) registros[editIndex] = reg;
@@ -806,7 +792,7 @@
 
         if (!esValidoSinSolapes) {
             registros = copiaRegistrosRespando;
-            resolverYReestructurarTodoElDia(); // Revertimos al estado seguro
+            resolverYReestructurarTodoElDia(); 
             return alert("¡Conflicto de Horario Irresoluble! Las horas ingresadas se solapan de manera directa con otro bloque en la máquina " + reg.maquina + ". Por favor revise las hojitas.");
         }
 
@@ -1016,8 +1002,8 @@
             "EMPAQUE": r.empaque,
             "PRODUCCIÓN": r.produccion,
             "TIPO DE JORNADA": r.jornada,
-            "HORA INICIO": r.hora_inicio,
-            "HORA FIN": r.hora_fin
+            "HORA INICIO": r.hora_inicio ? r.hora_inicio + ":00" : "",
+            "HORA FIN": r.hora_fin ? r.hora_fin + ":00" : ""
         })));
         
         const wb = XLSX.utils.book_new();
