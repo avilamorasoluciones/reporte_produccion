@@ -6,8 +6,7 @@ const APP_SHELL = [
   "./pwa-install.js",
   "./assets/icon.svg",
   "./assets/icon-192.png",
-  "./assets/icon-512.png",
-  "./pwa-install.js"
+  "./assets/icon-512.png"
 ];
 
 self.addEventListener("install", (event) => {
