@@ -1,9 +1,12 @@
-const CACHE_NAME = "reporte-produccion-pwa-v1";
+const CACHE_NAME = "reporte-produccion-pwa-v2";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./manifest.json",
-  "./assets/icon.svg"
+  "./assets/icon.svg",
+  "./assets/icon-192.png",
+  "./assets/icon-512.png",
+  "./pwa-install.js"
 ];
 
 self.addEventListener("install", (event) => {
