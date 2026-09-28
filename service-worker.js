@@ -3,6 +3,7 @@ const APP_SHELL = [
   "./",
   "./index.html",
   "./manifest.json",
+  "./pwa-install.js",
   "./assets/icon.svg",
   "./assets/icon-192.png",
   "./assets/icon-512.png",
