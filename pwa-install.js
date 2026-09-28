@@ -133,7 +133,7 @@
 
   window.addEventListener("load", () => {
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("./service-worker.js", { scope: "./" })
+      navigator.serviceWorker.register("./service-worker.js?v=3", { scope: "./" })
         .catch((error) => console.warn("PWA service worker:", error));
     }
 
