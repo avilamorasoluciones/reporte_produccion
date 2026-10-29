@@ -113,6 +113,9 @@
 
         .form-toolbar { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color); gap: 12px; flex-wrap: wrap; }
         .toolbar-left { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+        .export-option { display: inline-flex; align-items: center; gap: 8px; min-height: 32px; max-width: 240px; }
+        .export-option input[type="checkbox"] { width: 16px; height: 16px; padding: 0; margin: 0; flex: 0 0 auto; accent-color: var(--primary); cursor: pointer; }
+        .export-option label { color: var(--text-main); font-size: 0.72rem; font-weight: 600; text-transform: none; white-space: normal; cursor: pointer; }
         .meta-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 12px; flex-wrap: wrap; }
         .meta-badge { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border-color); background: var(--surface-color); font-weight: 700; color: var(--text-muted); }
         .table-container { background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 8px; overflow-x: auto; max-height: 55vh; }
@@ -286,6 +289,10 @@
                 <button type="button" class="btn btn-success" onclick="document.getElementById('fileExcel').click()" title="Importar base de datos Excel">
                     <i class="fa-solid fa-file-import"></i> Importar
                 </button>
+                <div class="export-option">
+                    <input type="checkbox" id="quoteOrderOnExport" checked />
+                    <label for="quoteOrderOnExport">N.º de orden entre comillas (solo Excel)</label>
+                </div>
                 <button type="button" class="btn btn-success" onclick="exportarExcel()">
                     <i class="fa-solid fa-file-excel"></i> Exportar
                 </button>
@@ -357,6 +364,15 @@
     const lblFechaActual = document.getElementById('lblFechaActual');
     const lblTotalRegistros = document.getElementById('lblTotalRegistros');
     const draftIcon = document.getElementById('draftIcon');
+    const quoteOrderOnExport = document.getElementById('quoteOrderOnExport');
+    const QUOTE_ORDER_EXPORT_KEY = 'reporteProduccion_quoteOrderOnExport';
+    const savedQuoteOrderExport = localStorage.getItem(QUOTE_ORDER_EXPORT_KEY);
+    if (savedQuoteOrderExport !== null) {
+        quoteOrderOnExport.checked = savedQuoteOrderExport === 'true';
+    }
+    quoteOrderOnExport.addEventListener('change', () => {
+        localStorage.setItem(QUOTE_ORDER_EXPORT_KEY, String(quoteOrderOnExport.checked));
+    });
 
     // -- Autoguardado (Borrador) --
     function guardarBorrador() {
@@ -1000,7 +1016,9 @@
         const ws = XLSX.utils.json_to_sheet(registros.map(r => ({
             "FECHA": fechaVal,
             "DÍA": nombreDia,
-            "Nº. ORDEN": r.orden,
+            "Nº. ORDEN": (r.orden !== '' && r.orden !== null && r.orden !== undefined)
+                ? (quoteOrderOnExport.checked ? '"' + String(r.orden) + '"' : r.orden)
+                : '',
             "NOMBRE DEL TRABAJO": r.trabajo,
             "MÁQUINA": r.maquina,
             "PRODUCTO": r.producto,
@@ -1012,6 +1030,18 @@
             "HORA INICIO": r.hora_inicio ? r.hora_inicio + ":00" : "",
             "HORA FIN": r.hora_fin ? r.hora_fin + ":00" : ""
         })));
+        // Guardar la fecha como fecha real de Excel y mostrarla como dd/mm/aa.
+        const [anio, mes, dia] = fechaVal.split('-').map(Number);
+        const fechaExcelSerial = Math.floor(Date.UTC(anio, mes - 1, dia) / 86400000) + 25569;
+        for (let fila = 2; fila <= registros.length + 1; fila++) {
+            const celdaFecha = ws[`A${fila}`];
+            if (celdaFecha) {
+                celdaFecha.t = 'n';
+                celdaFecha.v = fechaExcelSerial;
+                celdaFecha.z = 'dd/mm/yy';
+                delete celdaFecha.w;
+            }
+        }
         
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Producción");
